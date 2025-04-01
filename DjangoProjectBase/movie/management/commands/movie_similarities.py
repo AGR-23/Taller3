@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         # ✅ Change these titles for any movies you want to compare
         movie1 = Movie.objects.get(title="Dante's Inferno")
-        movie2 = Movie.objects.get(title="The Great Train Robbery")
+        movie2 = Movie.objects.get(title="Dante's Inferno")
 
         def get_embedding(text):
             response = client.embeddings.create(
@@ -36,7 +36,7 @@ class Command(BaseCommand):
         self.stdout.write(f"\U0001F3AC Similaridad entre '{movie1.title}' y '{movie2.title}': {similarity:.4f}")
 
         # ✅ Optional: Compare against a prompt
-        prompt = "película sobre la Segunda Guerra Mundial"
+        prompt = "película de terror psicológico que sigue la historia de un joven escritor atormentado por visiones perturbadoras y pesadillas vívidas. Inspirado en la obra clásica de Dante Alighieri, el protagonista se sumerge en un viaje a través de los nueve círculos del infierno en un intento desesperado por salvar su alma de la condenación eterna. Con una atmósfera oscura y opresiva, la película combina elementos de horror sobrenatural con una narrativa introspectiva que explora los pecados y la redención. Para los amantes del cine de terror que buscan una experiencia inmersiva y perturbadora, ofrece una visión única del infierno y los tormentos internos del protagonista. Con actuaciones intensas y una dirección visualmente impactante, esta película es ideal para aquellos que disfrutan de historias profundas y perturbadoras que desafían los límites de la mente humana. Prepárate para adentrarte en un viaje aterrador a través de la mente del protagonista y descubrir los horrores que acechan en las sombras de su propia alma"
         prompt_emb = get_embedding(prompt)
 
         sim_prompt_movie1 = cosine_similarity(prompt_emb, emb1)
