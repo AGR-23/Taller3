@@ -2,11 +2,16 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 from .models import Movie
+from .forms import PromptForm  # Importamos el formulario que crearemos
 
 import matplotlib.pyplot as plt
 import matplotlib
 import io
 import urllib, base64
+import os
+import numpy as np
+from openai import OpenAI
+from dotenv import load_dotenv
 
 def home(request):
     #return HttpResponse('<h1>Welcome to Home Page</h1>')
@@ -123,3 +128,51 @@ def generate_bar_chart(data, xlabel, ylabel):
     buffer.close()
     graphic = base64.b64encode(image_png).decode('utf-8')
     return graphic
+
+def recommendation_view(request):
+    recommendations = []
+    
+    if request.method == 'POST':
+        form = PromptForm(request.POST)
+        if form.is_valid():
+            prompt = form.cleaned_data['prompt']
+            
+            # Cargar OpenAI API key
+            load_dotenv('../api_keys.env')
+            client = OpenAI(api_key=os.environ.get('openai_api_key'))
+            
+            def get_embedding(text):
+                response = client.embeddings.create(
+                    input=[text],
+                    model="text-embedding-3-small"
+                )
+                return np.array(response.data[0].embedding, dtype=np.float32)
+            
+            def cosine_similarity(a, b):
+                return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+            
+            # Generar embedding para el prompt
+            prompt_embedding = get_embedding(prompt)
+            
+            # Calcular similitud para todas las películas
+            movie_similarities = []
+            
+            for movie in Movie.objects.all():
+                # Convertir embedding binario a numpy array
+                movie_embedding = np.frombuffer(movie.emb, dtype=np.float32)
+                
+                # Calcular similitud de coseno
+                similarity = cosine_similarity(prompt_embedding, movie_embedding)
+                
+                # Guardar película y su similitud
+                movie_similarities.append((movie, similarity))
+            
+            # Ordenar por similitud (de mayor a menor)
+            movie_similarities.sort(key=lambda x: x[1], reverse=True)
+            
+            # Tomar las 5 películas más similares
+            recommendations = movie_similarities[:5]
+    else:
+        form = PromptForm()
+    
+    return render(request, 'recommend.html', {'form': form, 'recommendations': recommendations})
